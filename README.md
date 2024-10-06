@@ -1,1 +1,1 @@
-# fpga_project_fa24
+# EECS 151/251A FPGA Project Skeleton for Fall 2024
