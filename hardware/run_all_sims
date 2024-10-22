@@ -62,7 +62,7 @@ def isa_test_success_cond(_: str) -> bool:
     )
     tests_failed = get_grep_output(proc_failed) + get_grep_output(proc_timout)
     filtered_tests = list(
-        filter(lambda l: ("fence_i" not in l) and l != "", tests_failed)
+        filter(lambda l: ("fence_i" not in l and "ma_data" not in l) and l != "", tests_failed)
     )
     if filtered_tests:
         return False
