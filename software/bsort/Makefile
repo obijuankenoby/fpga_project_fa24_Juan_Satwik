@@ -1,6 +1,6 @@
 # Master Makefile dependencies
-TARGET := user_io_test
+TARGET := bsort
 INCLUDE_LIB := true
-GCC_OPTS += -O2 -flto
+GCC_OPTS += -O0
 
 include ../Makefrag

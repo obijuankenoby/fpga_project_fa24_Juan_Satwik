@@ -5,7 +5,7 @@ Check out the [Project Overview](https://inst.eecs.berkeley.edu/~eecs151/fa24/st
 
 **Checkpoint 2:** Fully Functional 3-Stage RISC-V (rv32ui) Processor
 
-**Checkpoint 3:** Integration of IO Circuits and Design of a SD-DAC and FM Synthesizer
+**Checkpoint 3:** Branch Predictor using Branch History Table
 
 **Checkpoint 4:** Processor Optimization
 

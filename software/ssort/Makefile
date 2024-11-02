@@ -1,6 +1,6 @@
 # Master Makefile dependencies
-TARGET := piano
+TARGET := ssort
 INCLUDE_LIB := true
-GCC_OPTS += -O2 -flto
+GCC_OPTS += -O0
 
 include ../Makefrag
