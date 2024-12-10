@@ -1,6 +1,6 @@
 // This is modelled after 61c's branch comparator
 // Takes in BrUN, Amux and BMUX data, and outputs control logic for if data values are equal or less than
-module branch_comp(
+module BRANCH_COMP(
     input branch_unsigned, //should be 1 bit
     input [31:0] amux_output,
     input [31:0] bmux_output,
@@ -13,7 +13,6 @@ module branch_comp(
     assign Equality = equal;
     assign LessThan = lessthan;
 
-    assign branch_target = branch_target_reg;
 
     always @(*) begin
         equal = (amux_output == bmux_output);
