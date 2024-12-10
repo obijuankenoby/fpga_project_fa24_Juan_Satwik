@@ -9,15 +9,46 @@ module debouncer #(
     input [WIDTH-1:0] glitchy_signal,
     output [WIDTH-1:0] debounced_signal
 );
-    // TODO: fill in neccesary logic to implement the wrapping counter and the saturating counters
-    // Some initial code has been provided to you, but feel free to change it however you like
-    // One wrapping counter is required
-    // One saturating counter is needed for each bit of glitchy_signal
-    // You need to think of the conditions for reseting, clock enable, etc. those registers
-    // Refer to the block diagram in the spec
 
-    // Remove this line once you have created your debouncer
-    assign debounced_signal = 0;
+
+    wire [1:0] sample_pulse_generator;
+    reg [WRAPPING_CNT_WIDTH-1:0] wrapping_counter;
+    
+    initial begin
+        wrapping_counter = 0;
+    end
+
+    always @(posedge clk) begin
+        // Wrapping counter to generate sample pulse every SAMPLE_CNT_MAX cycles
+        if (wrapping_counter == SAMPLE_CNT_MAX) begin
+            wrapping_counter <= 0;
+        end else begin
+            wrapping_counter <= wrapping_counter + 1;
+        end
+    end
+
+    //udpate sample_pulse here
+    assign sample_pulse_generator = (wrapping_counter == SAMPLE_CNT_MAX);
 
     reg [SAT_CNT_WIDTH-1:0] saturating_counter [WIDTH-1:0];
+
+    genvar  i;
+    generate
+        for (i = 0; i < WIDTH; i = i + 1) begin
+            always @(posedge clk ) begin
+                if (sample_pulse_generator) begin
+                    if(glitchy_signal[i]) begin
+                       if (saturating_counter[i] < PULSE_CNT_MAX)
+                        saturating_counter[i] <= saturating_counter[i] + 1;
+                        else
+                        saturating_counter[i] <= PULSE_CNT_MAX;
+                    end
+                    else 
+                    saturating_counter[i] <= 0;
+                end
+            end
+            assign debounced_signal[i] = (saturating_counter[i] >= PULSE_CNT_MAX);
+        end
+    endgenerate
+
 endmodule

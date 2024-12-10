@@ -9,6 +9,10 @@ module synchronizer #(parameter WIDTH = 1) (
     // and should output a vector of WIDTH-bit synchronous signals
     // that are synchronized to the input clk
 
-    // Remove this line once you create your synchronizer
-    assign sync_signal = 0;
+    reg [WIDTH-1:0] sync1, sync2;
+    always @(posedge clk) begin
+        sync1 <= async_signal;
+        sync2 <= sync1;
+    end
+    assign sync_signal = sync2;
 endmodule
