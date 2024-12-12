@@ -78,32 +78,32 @@ module cpu #(
         .rd1(rd1), .rd2(rd2)
     );
 
-    // // On-chip UART
-    // // UART Receiver
-    // wire [7:0] uart_rx_data_out;
-    // wire uart_rx_data_out_valid;
-    // reg uart_rx_data_out_ready; // done
-    // // UART Transmitter
-    // wire [7:0] uart_tx_data_in;
-    // reg uart_tx_data_in_valid; // done
-    // wire uart_tx_data_in_ready;
-    // uart #(
-    //     .CLOCK_FREQ(CPU_CLOCK_FREQ),
-    //     .BAUD_RATE(BAUD_RATE)
-    // ) on_chip_uart (
-    //     .clk(clk), // input/done
-    //     .reset(rst), // input/done
+    // On-chip UART
+    // UART Receiver
+    wire [7:0] uart_rx_data_out;
+    wire uart_rx_data_out_valid;
+    reg uart_rx_data_out_ready; 
+    // UART Transmitter
+    wire [7:0] uart_tx_data_in;
+    reg uart_tx_data_in_valid; 
+    wire uart_tx_data_in_ready;
+    uart #(
+        .CLOCK_FREQ(CPU_CLOCK_FREQ),
+        .BAUD_RATE(BAUD_RATE)
+    ) on_chip_uart (
+        .clk(clk),
+        .reset(rst), 
 
-    //     .serial_in(serial_in), // input/done
-    //     .data_out(uart_rx_data_out), // output
-    //     .data_out_valid(uart_rx_data_out_valid), // output
-    //     .data_out_ready(uart_rx_data_out_ready), // input/done
+        .serial_in(serial_in), 
+        .data_out(uart_rx_data_out),
+        .data_out_valid(uart_rx_data_out_valid), 
+        .data_out_ready(uart_rx_data_out_ready), 
 
-    //     .serial_out(serial_out), // output/done
-    //     .data_in(uart_tx_data_in), // input
-    //     .data_in_valid(uart_tx_data_in_valid), // input
-    //     .data_in_ready(uart_tx_data_in_ready) // output
-    // );
+        .serial_out(serial_out), 
+        .data_in(uart_tx_data_in),
+        .data_in_valid(uart_tx_data_in_valid),
+        .data_in_ready(uart_tx_data_in_ready)
+    );
 
     reg [31:0] tohost_csr = 0;
 
@@ -824,18 +824,17 @@ module cpu #(
 
     IO_MEMORY_MAP io_memory_map (
         .clk(clk),
-        .rst(rst),
-        .serial_in(serial_in),
-        .instruction(INST_uart_sw),
+        .uart_rx_data_out_valid(uart_rx_data_out_valid),
+        .uart_tx_data_in_ready(uart_tx_data_in_ready),
         .INST_uart_lw(INST_uart_lw),
-        .instruction_D(INST_D_reg_out),
-        .addr(Addr_uart_sw),
+        .INST_uart_sw(INST_uart_sw),
         .Addr_uart_lw(Addr_uart_lw),
         .Addr_uart_sw(Addr_uart_sw),
-        .uart_tx_data_in(uart_tx_data_in),
+        .uart_rx_data_out(uart_rx_data_out),
         .br_pred_correct_X(br_pred_correct_X),
         .uart_out(uart_out),
-        .serial_out(serial_out)
+        .uart_rx_data_out_ready(uart_rx_data_out_ready),
+        .uart_tx_data_in_valid(uart_tx_data_in_valid)
     );
 
 
