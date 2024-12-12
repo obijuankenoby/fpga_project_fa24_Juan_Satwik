@@ -244,7 +244,7 @@ module cpu #(
 
     // Branch Prediction Taken/Not Taken MUX
     wire bp_pred_taken_mux_sel;
-  	wire [31:0] bp_pred_taken_mux_in0, bp_pred_taken_mux_in1;
+  	wire [31:32] bp_pred_taken_mux_in0, bp_pred_taken_mux_in1;
 	wire [31:0] bp_pred_taken_mux_out;
 	MUX2 bp_pred_taken_mux (
 		.sel(bp_pred_taken_mux_sel),
@@ -561,12 +561,12 @@ module cpu #(
 
     // inputs to RS1 MUX2
 	assign RS1_mux2_in_0 = RS1_reg_out;
-	assign RS1_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
-	assign RS1_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
+	// assign RS1_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
+	// assign RS1_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
 
 	assign RS2_mux2_in_0 = RS2_reg_out;
-	assign RS2_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
-	assign RS2_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
+	// assign RS2_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
+	// assign RS2_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
 
     // inputs to BRANCH COMP
     assign RS1_br = RS1_mux2_out;
@@ -595,8 +595,8 @@ module cpu #(
 
     // inputs to RS2_MUX3
     assign RS2_mux3_in_0 = RS2_mux2_out;
-    assign RS2_mux3_in_1 = ALU_reg_out; 
-    assign RS2_mux3_in_2 = mem_mask_out; 
+    // assign RS2_mux3_in_1 = ALU_reg_out; 
+    // assign RS2_mux3_in_2 = mem_mask_out; 
 
     // send ALU result back to PC_SEL MUX
     // assign PC_mux_in_3 = ALU_out;
@@ -606,8 +606,8 @@ module cpu #(
 
 
     // FORWARD DATA D TO RS1 MUX and RS2 MUX
-    assign RS1_mux_in_1 = WB_mux_out;
-    assign RS2_mux_in_1 = WB_mux_out;
+    // assign RS1_mux_in_1 = WB_mux_out;
+    // assign RS2_mux_in_1 = WB_mux_out;
 
     // Branch Prediction Wiring
     assign pc_check = PC_D_reg_out;
@@ -845,5 +845,27 @@ module cpu #(
         .dmem_we(dmem_we),
         .imem_wea(imem_wea)
     );
+
+    // Add NOP stalling logic
+    reg stall;
+    always @(*) begin
+        stall = 0;
+        if ((INST_D_reg_out[6:2] == `OPC_LOAD_5) && 
+            ((INST_X_reg_out[11:7] == NOP_mux_out[19:15]) || (INST_X_reg_out[11:7] == NOP_mux_out[24:20]))) begin
+            stall = 1;
+        end
+    end
+
+    always @(posedge clk) begin
+        if (stall) begin
+            PC_reg_out <= PC_reg_out; // Hold PC
+            PC_D_reg_out <= PC_D_reg_out; // Hold D stage
+            INST_D_reg_out <= 32'h00000013; // NOP instruction
+        end else begin
+            PC_reg_out <= PC_reg_in;
+            PC_D_reg_out <= PC_D_reg_in;
+            INST_D_reg_out <= INST_D_reg_in;
+        end
+    end
 
 endmodule
