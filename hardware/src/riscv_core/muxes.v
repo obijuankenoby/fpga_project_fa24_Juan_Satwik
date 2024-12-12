@@ -4,7 +4,7 @@
 `timescale 1ns/1ns
 
 // MUX module
-module TWO_INPUT_MUX(sel, in0, in1, out);
+module MUX2(sel, in0, in1, out);
   input sel;
   input [31:0] in0, in1;
   output reg [31:0] out;
@@ -18,7 +18,7 @@ module TWO_INPUT_MUX(sel, in0, in1, out);
   end
 endmodule // TWO_INPUT_MUX
 
-module FOUR_INPUT_MUX(sel, in0, in1, in2, in3, out);
+module MUX4(sel, in0, in1, in2, in3, out);
   input [1:0] sel;
   input [31:0] in0, in1, in2, in3;
   output reg [31:0] out;

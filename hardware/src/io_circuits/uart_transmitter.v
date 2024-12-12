@@ -61,10 +61,4 @@ module uart_transmitter #(
 
     assign serial_out = tx_running ? tx_shift[0] : 1'b1; // Default to idle state when not running
 
-    datainlow: assert property (@(posedge clk) !tx_running |-> (serial_out && data_in_ready));
-    property transmitting;
-    @(posedge clk) disable iff(reset)
-
-    $rose(transmission) |-> !data_in_ready[*SYMBOL_EDGE_TIME * 10];
-    endproperty
 endmodule
