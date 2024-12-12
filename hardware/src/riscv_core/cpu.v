@@ -78,32 +78,32 @@ module cpu #(
         .rd1(rd1), .rd2(rd2)
     );
 
-    // On-chip UART
-    // UART Receiver
-    wire [7:0] uart_rx_data_out;
-    wire uart_rx_data_out_valid;
-    reg uart_rx_data_out_ready; // done
-    // UART Transmitter
-    wire [7:0] uart_tx_data_in;
-    reg uart_tx_data_in_valid; // done
-    wire uart_tx_data_in_ready;
-    uart #(
-        .CLOCK_FREQ(CPU_CLOCK_FREQ),
-        .BAUD_RATE(BAUD_RATE)
-    ) on_chip_uart (
-        .clk(clk), // input/done
-        .reset(rst), // input/done
+    // // On-chip UART
+    // // UART Receiver
+    // wire [7:0] uart_rx_data_out;
+    // wire uart_rx_data_out_valid;
+    // reg uart_rx_data_out_ready; // done
+    // // UART Transmitter
+    // wire [7:0] uart_tx_data_in;
+    // reg uart_tx_data_in_valid; // done
+    // wire uart_tx_data_in_ready;
+    // uart #(
+    //     .CLOCK_FREQ(CPU_CLOCK_FREQ),
+    //     .BAUD_RATE(BAUD_RATE)
+    // ) on_chip_uart (
+    //     .clk(clk), // input/done
+    //     .reset(rst), // input/done
 
-        .serial_in(serial_in), // input/done
-        .data_out(uart_rx_data_out), // output
-        .data_out_valid(uart_rx_data_out_valid), // output
-        .data_out_ready(uart_rx_data_out_ready), // input/done
+    //     .serial_in(serial_in), // input/done
+    //     .data_out(uart_rx_data_out), // output
+    //     .data_out_valid(uart_rx_data_out_valid), // output
+    //     .data_out_ready(uart_rx_data_out_ready), // input/done
 
-        .serial_out(serial_out), // output/done
-        .data_in(uart_tx_data_in), // input
-        .data_in_valid(uart_tx_data_in_valid), // input
-        .data_in_ready(uart_tx_data_in_ready) // output
-    );
+    //     .serial_out(serial_out), // output/done
+    //     .data_in(uart_tx_data_in), // input
+    //     .data_in_valid(uart_tx_data_in_valid), // input
+    //     .data_in_ready(uart_tx_data_in_ready) // output
+    // );
 
     reg [31:0] tohost_csr = 0;
 
@@ -678,35 +678,6 @@ module cpu #(
     assign Addr_uart_lw = ALU_reg_out;
     assign uart_tx_data_in = RS2_mux3_out[7:0];
 
-    always @(*) begin
-        if (INST_uart_lw[6:2] == `OPC_LOAD_5 && Addr_uart_lw == 32'h80000004) begin
-            uart_rx_data_out_ready = 1;
-            uart_tx_data_in_valid = 0;
-        end
-        else if (INST_uart_sw[6:2] == `OPC_STORE_5 && Addr_uart_sw == 32'h80000008) begin
-            uart_rx_data_out_ready = 0;
-            uart_tx_data_in_valid = 1;
-        end
-        else begin
-            uart_rx_data_out_ready = 0;
-            uart_tx_data_in_valid = 0;
-        end
-    end
-
-    IO_MEMORY_MAP io_memory_map (
-        .clk(clk),
-        .rst(rst),
-        .serial_in(serial_in),
-        .instruction(INST_uart_sw),
-        .instruction_D(INST_D_reg_out),
-        .addr(Addr_uart_sw),
-        .Addr_uart_lw(Addr_uart_lw),
-        .uart_tx_data_in(uart_tx_data_in),
-        .br_pred_correct_X(br_pred_correct_X),
-        .uart_out(uart_out),
-        .serial_out(serial_out)
-    );
-
     // Addr MUX input
     assign Addr_mux_in_0 = bios_doutb;
     assign Addr_mux_in_1 = dmem_dout;
@@ -850,6 +821,22 @@ module cpu #(
     // Wiring for br_pred_correct to other modules
     assign br_pred_correct_IF = br_pred_correct_X;
     assign br_pred_correct_D = br_pred_correct_X;
+
+    IO_MEMORY_MAP io_memory_map (
+        .clk(clk),
+        .rst(rst),
+        .serial_in(serial_in),
+        .instruction(INST_uart_sw),
+        .INST_uart_lw(INST_uart_lw),
+        .instruction_D(INST_D_reg_out),
+        .addr(Addr_uart_sw),
+        .Addr_uart_lw(Addr_uart_lw),
+        .Addr_uart_sw(Addr_uart_sw),
+        .uart_tx_data_in(uart_tx_data_in),
+        .br_pred_correct_X(br_pred_correct_X),
+        .uart_out(uart_out),
+        .serial_out(serial_out)
+    );
 
 
     // MEMORY COMBINATIONAL LOGIC for IMEM and DMEM

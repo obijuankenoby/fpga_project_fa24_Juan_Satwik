@@ -9,9 +9,11 @@ module IO_MEMORY_MAP #(
     input rst,
     input serial_in,
     input [31:0] instruction,
+    input [31:0] INST_uart_lw,
     input [31:0] instruction_D,
     input [31:0] addr,
     input [31:0] Addr_uart_lw,
+    input [31:0] Addr_uart_sw,
     input [7:0] uart_tx_data_in,
     input br_pred_correct_X,
     output reg [31:0] uart_out,
@@ -73,6 +75,21 @@ module IO_MEMORY_MAP #(
         if (addr == 32'h80000018) Correct_pred_counter <= 0;
         else if (instruction_D[6:2] == `OPC_BRANCH_5 && br_pred_correct_X) Correct_pred_counter <= Correct_pred_counter + 1;
         else Correct_pred_counter <= Correct_pred_counter;
+    end
+
+     always @(*) begin
+        if (INST_uart_lw[6:2] == `OPC_LOAD_5 && Addr_uart_lw == 32'h80000004) begin
+            uart_rx_data_out_ready = 1;
+            uart_tx_data_in_valid = 0;
+        end
+        else if (instruction[6:2] == `OPC_STORE_5 && Addr_uart_sw == 32'h80000008) begin
+            uart_rx_data_out_ready = 0;
+            uart_tx_data_in_valid = 1;
+        end
+        else begin
+            uart_rx_data_out_ready = 0;
+            uart_tx_data_in_valid = 0;
+        end
     end
 
     always @(*) begin
