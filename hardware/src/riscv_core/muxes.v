@@ -1,8 +1,3 @@
-/* Basic modules file for project.
-
-*/
-`timescale 1ns/1ns
-
 // MUX module
 module MUX2(sel, in0, in1, out);
   input sel;

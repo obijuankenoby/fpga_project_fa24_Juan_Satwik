@@ -145,7 +145,7 @@ module cpu #(
     wire PC30_mux_select;
     wire [31:0] PC30_mux_in_0, PC30_mux_in_1;
     wire [31:0] PC30_mux_out;
-    MUX2 pc_thirty_mux (
+    MUX2 pc30_mux (
         .sel(PC30_mux_select),
         .in0(PC30_mux_in_0),
         .in1(PC30_mux_in_1),
@@ -726,17 +726,17 @@ module cpu #(
     wire jalr_IF;
     wire br_taken_IF;
     wire br_pred_correct_IF;
-    WF_CU wf_cu (
+    IF_CONTROL_LOGIC if_control_logic (
         .rst(rst),
         .instruction(INST_IF), 
-        .rf_we(rf_we), 
-        .wb_sel(WB_select), 
+        .x_instruction(INST_IF_X), 
+        .wb_select(WB_select), 
+        .pc_select(PC_select_IF),
         .mem_mask_select(mem_mask_select_IF), 
-        .pc_sel(PC_select_IF),
-		.br_taken(br_taken_IF),
+        .rf_we(rf_we),
         .jal(jal_IF),
         .jalr(jalr_IF),
-        .x_instruction(INST_IF_X),
+        .br_taken(br_taken_IF),
         .br_pred_correct(br_pred_correct_IF)
     );
 
@@ -759,17 +759,17 @@ module cpu #(
     wire jalr_D;
     wire br_taken_D;
     wire br_pred_correct_D;
-    D_CU d_cu (
+    D_CONTROL_LOGIC d_control_logic (
         .instruction(INST_D), 
-        .pc(PC_D), 
-        .pc_thirty(PC30_D), 
-        .nop_sel(NOP_select_D), 
-        .orange_sel(orange_select_D), 
-        .green_sel(green_select_D),
+        .IF_instruction(INST_IF_W),
+        .X_instruction(INST_X_D),
+        .PC(PC_D), 
+        .PC30(PC30_D), 
+        .NOP_select(NOP_select_D), 
+        .hazard1(orange_select_D), 
+        .hazard2(green_select_D),
         .jalr(jalr_D),
         .br_taken(br_taken_D),
-        .IF_instruction(INST_IF_W),
-        .x_instruction(INST_X_D),
         .br_pred_correct(br_pred_correct_D)
     );
 
@@ -791,20 +791,20 @@ module cpu #(
     wire [3:0] ALU_select_X;
 	wire br_taken_X;
     wire br_pred_taken_X, br_pred_correct_X, br_result_X;
-    X_CU x_cu (
-        .instruction(INST_X), 
-        .orange_sel(orange_select_X), 
-        .green_sel(green_select_X), 
+    X_CONTROL_LOGIC x_control_logic (
+        .instruction(INST_X),
+        .IF_instruction(INST_X_IF), 
+        .a_select(a_select_X), 
+        .b_select(b_select_X), 
+        .hazard1(orange_select_X), 
+        .hazard2(green_select_X), 
+        .RS2_select(RS2_select_X), 
+        .ALU_select(ALU_select_X), 
+        .CSR_select(CSR_select_X),
         .br_un(br_un_X), 
         .br_eq(br_eq_X), 
         .br_lt(br_lt_X), 
-        .a_sel(a_select_X), 
-        .b_sel(x_b_sel), 
-        .rs2_sel(RS2_select_X), 
-        .ALU_select(ALU_select_X), 
-        .csr_sel(CSR_select_X),
 		.br_taken(br_taken_X),
-		.IF_instruction(INST_X_IF),
         .br_pred_taken(br_pred_taken_X),
         .br_pred_correct(br_pred_correct_X),
         .br_result(br_result_X)
@@ -817,7 +817,7 @@ module cpu #(
     assign RS1_mux2_select = orange_select_X;
     assign RS2_mux2_select = green_select_X;
     assign A_mux_select = a_select_X;
-    assign B_mux_select = x_b_sel;
+    assign B_mux_select = b_select_X;
     assign RS2_mux3_select = RS2_select_X;
     assign ALU_select = ALU_select_X;
     assign CSR_mux_select = CSR_select_X;

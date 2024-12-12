@@ -1,42 +1,40 @@
-module D_CU(instruction, pc, pc_thirty, nop_sel, orange_sel, green_sel, jalr, br_taken, IF_instruction, x_instruction, br_pred_correct);
-	input [31:0] instruction, pc, IF_instruction, x_instruction;
-  input jalr;
-  input br_taken;
-  input br_pred_correct;
-  // input br_taken, jalr; need br_taken and jalr for later
-	output reg orange_sel, green_sel;
-  output pc_thirty, nop_sel;
+module D_CONTROL_LOGIC(instruction, IF_instruction, X_instruction, PC, PC30, NOP_select, hazard1, hazard2, jalr, br_taken, br_pred_correct);
+	input [31:0] instruction, IF_instruction, X_instruction, PC;
+  input jalr, br_taken, br_pred_correct;
 
-	assign pc_thirty = pc[30];
+	output reg hazard1, hazard2;
+  output PC30, NOP_select;
 
-  assign nop_sel = (jalr || (!br_pred_correct && (x_instruction[6:2] == `OPC_BRANCH_5))) ? 1 : 0;
+
+	assign PC30 = PC[30];
+  assign NOP_select = (jalr || (!br_pred_correct && (X_instruction[6:2] == `OPC_BRANCH_5))) ? 1 : 0;
 
   // 2 Cycle Hazard
   always @(*) begin
     if (IF_instruction[6:2] == `OPC_BRANCH_5 || IF_instruction[6:2] == `OPC_STORE_5) begin
-      orange_sel = 0;
-      green_sel = 0;
+      hazard1 = 0;
+      hazard2 = 0;
     end
     else begin
       if (IF_instruction[11:7] == 5'b0) begin
-        orange_sel = 0;
-        green_sel = 0;
+        hazard1 = 0;
+        hazard2 = 0;
       end 
       else if (IF_instruction[11:7] == instruction[19:15] && IF_instruction[11:7] == instruction[24:20]) begin
-        orange_sel = 1;
-        green_sel = 1;
+        hazard1 = 1;
+        hazard2 = 1;
       end
       else if (IF_instruction[11:7] == instruction[19:15]) begin
-        orange_sel = 1;
-        green_sel = 0;
+        hazard1 = 1;
+        hazard2 = 0;
       end
       else if (IF_instruction[11:7] == instruction[24:20]) begin
-        orange_sel = 0;
-        green_sel = 1;
+        hazard1 = 0;
+        hazard2 = 1;
       end
       else begin
-        orange_sel = 0;
-        green_sel = 0;
+        hazard1 = 0;
+        hazard2 = 0;
       end
     end
   end
