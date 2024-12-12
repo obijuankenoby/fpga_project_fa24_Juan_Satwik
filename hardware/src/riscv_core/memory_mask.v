@@ -7,7 +7,7 @@ module MEM_MASK(mem_mask_in, mem_mask_select, mem_mask_out, mem_mask_alu_out);
 	always @(*) begin
 		if (mem_mask_alu_out[1:0] == 0) begin
 			case(mem_mask_select)
-				3'b000: mem_mask_out = mem_mask_in; // load word
+				3'b000: mem_mask_out = mem_mask_in;
 				3'b001: mem_mask_out = {{16{1'b0}}, mem_mask_in[15:0]}; // lhu
 				3'b010: mem_mask_out = {{16{mem_mask_in[15]}}, mem_mask_in[15:0]}; // lh
 				3'b011: mem_mask_out = {{24{1'b0}}, mem_mask_in[7:0]}; // lbu

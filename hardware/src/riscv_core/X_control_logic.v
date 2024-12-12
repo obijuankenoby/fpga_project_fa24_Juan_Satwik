@@ -2,17 +2,15 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
 	input [31:0] instruction, IF_instruction;
   input br_eq, br_lt, br_pred_taken;
 
-	output reg br_un, b_select;
+	output reg br_un, b_select, br_taken;
 	output reg [1:0] hazard1, hazard2, a_select, RS2_select, CSR_select;
 	output reg [3:0] ALU_select;
-  output reg br_taken;
-  output br_pred_correct;
-  output br_result;
+  output br_pred_correct, br_result;
 
-  wire [4:0] IF_rd, x_rs1, x_rs2;
+  wire [4:0] IF_rd, RS1_X, RS2_X;
   assign IF_rd = IF_instruction[11:7];
-  assign x_rs1 = instruction[19:15];
-  assign x_rs2 = instruction[24:20];
+  assign RS1_X = instruction[19:15];
+  assign RS2_X = instruction[24:20];
 
   // Determining if branch prediction is correct
   assign br_pred_correct = (br_pred_taken == br_taken);
@@ -26,15 +24,15 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
       hazard2 = 0;
     end
     else if (IF_instruction[6:2] == `OPC_LOAD_5) begin
-      if (IF_rd == x_rs1 && IF_rd == x_rs2) begin
+      if (IF_rd == RS1_X && IF_rd == RS2_X) begin
         hazard1 = 2;
         hazard2 = 2;
       end
-      else if (IF_rd == x_rs1) begin
+      else if (IF_rd == RS1_X) begin
         hazard1 = 2;
         hazard2 = 0;
       end
-      else if (IF_rd == x_rs2) begin
+      else if (IF_rd == RS2_X) begin
         hazard1 = 0;
         hazard2 = 2;
       end
@@ -44,15 +42,15 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
       end
     end
     else begin
-      if (IF_rd == x_rs1 && IF_rd == x_rs2) begin
+      if (IF_rd == RS1_X && IF_rd == RS2_X) begin
         hazard1 = 1;
 				hazard2 = 1;
       end
-      else if (IF_rd == x_rs1) begin
+      else if (IF_rd == RS1_X) begin
 				hazard1 = 1;
 				hazard2 = 0;
 			end
-      else if (IF_rd == x_rs2) begin 
+      else if (IF_rd == RS2_X) begin 
 				hazard1 = 0;
         hazard2 = 1;
 			end
@@ -67,10 +65,10 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
   always @(*) begin
     case (instruction[6:2])
       `OPC_STORE_5: begin
-        if (IF_instruction[6:2] == `OPC_LOAD_5 && IF_rd == x_rs2 && IF_rd != 5'b0) begin
+        if (IF_instruction[6:2] == `OPC_LOAD_5 && IF_rd == RS2_X && IF_rd != 5'b0) begin
           RS2_select = 2'd2; // MEM to MEM
         end
-        else if (IF_rd != 5'b0 && IF_rd == x_rs2 && IF_instruction[6:2] != `OPC_STORE_5 && IF_instruction[6:2] != `OPC_BRANCH_5) begin
+        else if (IF_rd != 5'b0 && IF_rd == RS2_X && IF_instruction[6:2] != `OPC_STORE_5 && IF_instruction[6:2] != `OPC_BRANCH_5) begin
           RS2_select = 2'd1; // ALU to MEM
         end
         else begin
@@ -135,15 +133,15 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
 				br_un = 0;
 				b_select = 1;
 				case(instruction[14:12])
+          `FNC_SRL_SRA: begin
+            if (instruction[30] == `FNC2_SRL) ALU_select = 4'b0110; // srli
+            else ALU_select = 4'b0111; // srai
+          end
           `FNC_ADD_SUB: ALU_select = 4'b0000; // addi
           `FNC_AND: ALU_select = 4'b0010; // andi
           `FNC_OR: ALU_select = 4'b0011; // ori
           `FNC_XOR: ALU_select = 4'b0100; // xori
           `FNC_SLL: ALU_select = 4'b0101; // slli
-          `FNC_SRL_SRA: begin
-            if (instruction[30] == `FNC2_SRL) ALU_select = 4'b0110; // srli
-            else ALU_select = 4'b0111; // srai
-          end
           `FNC_SLT: ALU_select = 4'b1000; // slti
           `FNC_SLTU: ALU_select = 4'b1001; // sltiu
         endcase
@@ -222,15 +220,11 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
 					if (br_eq) br_taken = 1;
 					else br_taken = 0;
 				end
-				`FNC_BGE: begin // bge
-					if (!br_lt || br_eq) br_taken = 1;
+        `FNC_BNE: begin // bne
+					if (!br_eq) br_taken = 1;
 					else br_taken = 0;
 				end
-				`FNC_BGEU: begin // bgeu
-					if (!br_lt || br_eq) br_taken = 1;
-					else br_taken = 0;
-				end
-				`FNC_BLT: begin // blt
+        `FNC_BLT: begin // blt
 					if (br_lt) br_taken = 1;
 					else br_taken = 0;
 				end
@@ -238,8 +232,12 @@ module X_CONTROL_LOGIC(instruction, IF_instruction, a_select, b_select, hazard1,
 					if (br_lt) br_taken = 1;
 					else br_taken = 0;
 				end
-				`FNC_BNE: begin // bne
-					if (!br_eq) br_taken = 1;
+				`FNC_BGE: begin // bge
+					if (!br_lt || br_eq) br_taken = 1;
+					else br_taken = 0;
+				end
+				`FNC_BGEU: begin // bgeu
+					if (!br_lt || br_eq) br_taken = 1;
 					else br_taken = 0;
 				end
 			endcase

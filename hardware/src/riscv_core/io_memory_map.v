@@ -9,9 +9,12 @@ module IO_MEMORY_MAP #(
     input rst,
     input serial_in,
     input [31:0] instruction,
+    input [31:0] instruction_D,
     input [31:0] addr,
+    input [31:0] Addr_uart_lw,
     input [7:0] uart_tx_data_in,
-    output reg [31:0] out,
+    input br_pred_correct_X,
+    output reg [31:0] uart_out,
     output serial_out
 );
     // On-chip UART
@@ -42,39 +45,46 @@ module IO_MEMORY_MAP #(
     );
 
     // Cycle Counter
-    reg [31:0] cycle_counter = 0;
+    reg [31:0] Cycle_counter = 0;
     always @(posedge clk) begin
-        if (addr == 32'h80000018) cycle_counter <= 0;
-        else cycle_counter <= cycle_counter + 1;
+        if (addr == 32'h80000018) Cycle_counter <= 0;
+        else Cycle_counter <= Cycle_counter + 1;
     end
 
     // Instruction Counter
-    reg [31:0] instruction_counter = 0;
+    reg [31:0] INST_counter = 0;
     always @(posedge clk) begin
-        if (addr == 32'h80000018) cycle_counter <= 0;
-        else if (instruction == 32'b0000_0000_0000_0000_0000_0000_0001_0011) instruction_counter <= instruction_counter;
-        else instruction_counter <= instruction_counter + 1;
+        if (addr == 32'h80000018) INST_counter <= 0;
+        else if (instruction == 32'b0000_0000_0000_0000_0000_0000_0001_0011) INST_counter <= INST_counter;
+        else INST_counter <= INST_counter + 1;
     end
 
-    // for rx_data_out_ready and tx_in_valid
-    always @(*) begin
-        if (instruction[6:2] == `OPC_LOAD_5 && addr == 32'h80000004) uart_rx_data_out_ready = 1;
-        else if (instruction[6:2] == `OPC_STORE_5 && addr == 32'h80000008) uart_tx_data_in_valid = 1; // can they be 1 at same time?
-        else begin
-            uart_rx_data_out_ready = 0;
-            uart_tx_data_in_valid = 0;
-        end
+    // Total Branch Instructions
+    reg [31:0] Branch_counter = 0;
+    always @(posedge clk) begin
+        if (addr == 32'h80000018) Branch_counter <= 0;
+        else if (instruction_D[6:2] == `OPC_BRANCH_5) Branch_counter <= Branch_counter + 1;
+        else Branch_counter <= Branch_counter;
     end
 
-    // for output of UART
+    // Correct Predictions
+    reg [31:0] Correct_pred_counter = 0;
+    always @(posedge clk) begin
+        if (addr == 32'h80000018) Correct_pred_counter <= 0;
+        else if (instruction_D[6:2] == `OPC_BRANCH_5 && br_pred_correct_X) Correct_pred_counter <= Correct_pred_counter + 1;
+        else Correct_pred_counter <= Correct_pred_counter;
+    end
+
     always @(*) begin
-        case(addr)
-            32'h80000000: out = {30'b0, uart_rx_data_out_valid, uart_tx_data_in_ready};
-            32'h80000004: out = {24'b0, uart_rx_data_out};
-            32'h80000010: out = cycle_counter;
-            32'h80000014: out = instruction_counter;
+        case(Addr_uart_lw)
+            32'h80000000: uart_out = {30'b0, uart_rx_data_out_valid, uart_tx_data_in_ready};
+            32'h80000004: uart_out = {24'b0, uart_rx_data_out};
+            32'h80000010: uart_out = Cycle_counter;
+            32'h80000014: uart_out = INST_counter;
+            32'h8000001c: uart_out = Branch_counter;
+            32'h80000020: uart_out = Correct_pred_counter;
             default: begin
-                out = 32'h00000000;
+                uart_out = 32'h00000000;
             end
         endcase
     end

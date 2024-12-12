@@ -693,6 +693,20 @@ module cpu #(
         end
     end
 
+    IO_MEMORY_MAP io_memory_map (
+        .clk(clk),
+        .rst(rst),
+        .serial_in(serial_in),
+        .instruction(INST_uart_sw),
+        .instruction_D(INST_D_reg_out),
+        .addr(Addr_uart_sw),
+        .Addr_uart_lw(Addr_uart_lw),
+        .uart_tx_data_in(uart_tx_data_in),
+        .br_pred_correct_X(br_pred_correct_X),
+        .uart_out(uart_out),
+        .serial_out(serial_out)
+    );
+
     // Addr MUX input
     assign Addr_mux_in_0 = bios_doutb;
     assign Addr_mux_in_1 = dmem_dout;
@@ -838,107 +852,12 @@ module cpu #(
     assign br_pred_correct_D = br_pred_correct_X;
 
 
+    // MEMORY COMBINATIONAL LOGIC for IMEM and DMEM
+	MEM_CL mem_cl(
+        .INST_X(INST_X),
+        .ALU_out(ALU_out),
+        .dmem_we(dmem_we),
+        .imem_wea(imem_wea)
+    );
 
-    // Cycle Counter
-    reg [31:0] Cycle_counter = 0;
-    always @(posedge clk) begin
-        if (Addr_uart_sw == 32'h80000018) Cycle_counter <= 0;
-        else Cycle_counter <= Cycle_counter + 1;
-    end
-
-    // Instruction Counter
-    reg [31:0] INST_counter = 0;
-    always @(posedge clk) begin
-        if (Addr_uart_sw == 32'h80000018) INST_counter <= 0;
-        else if (INST_uart_sw == 32'b0000_0000_0000_0000_0000_0000_0001_0011) INST_counter <= INST_counter;
-        else INST_counter <= INST_counter + 1;
-    end
-
-    // Total Branch Instructions
-    reg [31:0] Branch_counter = 0;
-    always @(posedge clk) begin
-        if (Addr_uart_sw == 32'h80000018) Branch_counter <= 0;
-        else if (INST_D_reg_out[6:2] == `OPC_BRANCH_5) Branch_counter <= Branch_counter + 1;
-        else Branch_counter <= Branch_counter;
-    end
-
-    // Correct Predictions
-    reg [31:0] Correct_pred_counter = 0;
-    always @(posedge clk) begin
-        if (Addr_uart_sw == 32'h80000018) Correct_pred_counter <= 0;
-        else if (INST_D_reg_out[6:2] == `OPC_BRANCH_5 && br_pred_correct_X) Correct_pred_counter <= Correct_pred_counter + 1;
-        else Correct_pred_counter <= Correct_pred_counter;
-    end
-
-    always @(*) begin
-        case(Addr_uart_lw)
-            32'h80000000: uart_out = {30'b0, uart_rx_data_out_valid, uart_tx_data_in_ready};
-            32'h80000004: uart_out = {24'b0, uart_rx_data_out};
-            32'h80000010: uart_out = Cycle_counter;
-            32'h80000014: uart_out = INST_counter;
-            32'h8000001c: uart_out = Branch_counter;
-            32'h80000020: uart_out = Correct_pred_counter;
-            default: begin
-                uart_out = 32'h00000000;
-            end
-        endcase
-    end
-
-	// DMEM WE
-	always @(*) begin
-		if (INST_X[6:2] == `OPC_STORE_5) begin
-			if (ALU_out[1:0] == 0) begin
-				case(INST_X[14:12])
-    				3'b000: dmem_we = 4'b0001; 
-					3'b001: dmem_we = 4'b0011;
-					3'b010: dmem_we = 4'b1111;
-                    default: dmem_we = 4'b0000;
-				endcase
-			end
-			else if (ALU_out[1:0] == 1 && INST_X[14:12] == 3'b000) begin
-				dmem_we = 4'b0010;
-			end
-			else if (ALU_out[1:0] == 2) begin
-				case(INST_X[14:12])
-    				3'b000: dmem_we = 4'b0100; 
-					3'b001: dmem_we = 4'b1100;
-                    default: dmem_we = 4'b0000;
-				endcase
-			end
-			else if (ALU_out[1:0] == 3 && INST_X[14:12] == 3'b000) begin
-				dmem_we = 4'b1000;
-			end
-            else dmem_we = 4'b0000;
-		end
-        else dmem_we = 4'b0000;
-	end
-
-    // IMEM WEA
-    always @(*) begin
-		if (INST_X[6:2] == `OPC_STORE_5) begin
-			if (ALU_out[1:0] == 0) begin
-				case(INST_X[14:12])
-    				3'b000: imem_wea = 4'b0001; 
-					3'b001: imem_wea = 4'b0011;
-					3'b010: imem_wea = 4'b1111;
-                    default: imem_wea = 4'b0000;
-				endcase
-			end
-			else if (ALU_out[1:0] == 1 && INST_X[14:12] == 3'b000) begin
-				imem_wea = 4'b0010;
-			end
-			else if (ALU_out[1:0] == 2) begin
-				case(INST_X[14:12])
-    				3'b000: imem_wea = 4'b0100;
-					3'b001: imem_wea = 4'b1100;
-                    default: imem_wea = 4'b0000;
-				endcase
-			end
-			else if (ALU_out[1:0] == 3 && INST_X[14:12] == 3'b000) begin
-				imem_wea = 4'b1000;
-			end
-            else imem_wea = 4'b0000;
-		end
-        else imem_wea = 4'b0000;
-	end
 endmodule

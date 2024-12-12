@@ -1,12 +1,6 @@
 module IF_CONTROL_LOGIC(rst, instruction, x_instruction, wb_select, pc_select, mem_mask_select, rf_we, jal, jalr, br_taken, br_pred_correct);
-  // needs branch logic, jalr, and jal (as inputs)
-  input rst;
-  input jal;
-  input jalr;
-	input [31:0] instruction;
-  input br_taken;
-  input [31:0] x_instruction;
-  input br_pred_correct;
+  input rst, jal, jalr, br_taken, br_pred_correct;
+	input [31:0] instruction, x_instruction;
 	output reg rf_we;
   output reg [1:0] wb_select;
 	output reg [2:0] mem_mask_select, pc_select;
@@ -26,12 +20,12 @@ module IF_CONTROL_LOGIC(rst, instruction, x_instruction, wb_select, pc_select, m
 				wb_select = 1;
         rf_we = 1;
       end
-      `OPC_ARI_ITYPE_5: begin // I and I*
+      `OPC_ARI_ITYPE_5: begin // I
 				mem_mask_select = 0;
 				wb_select = 1;
         rf_we = 1;
       end
-      `OPC_LOAD_5: begin // I type for load
+      `OPC_LOAD_5: begin 
 				wb_select = 0;
         rf_we = 1;
         case(instruction[14:12])
@@ -45,7 +39,7 @@ module IF_CONTROL_LOGIC(rst, instruction, x_instruction, wb_select, pc_select, m
           end
         endcase
       end
-      `OPC_STORE_5: begin // S-type (store)
+      `OPC_STORE_5: begin // S-type
 				mem_mask_select = 0;
 				wb_select = 0;
         rf_we = 0;
