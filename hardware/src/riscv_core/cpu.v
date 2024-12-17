@@ -128,11 +128,7 @@ module cpu #(
 	 // PC + 4
     wire [31:0] PCP4_in;
     wire [31:0] PCP4_out;
-    ADDER pc_plus_four (
-        .in0(PCP4_in),
-        .in1(4),
-        .out(PCP4_out)
-    );
+    assign PCP4_out = PCP4_in + 4;
 
     // PC REG
     wire [31:0] PC_reg_in;
@@ -164,6 +160,10 @@ module cpu #(
     );
 
     // IF WIRING
+    assign bios_addra = PC_mux_out[15:2];
+    assign imem_addrb = PC_mux_out[15:2];
+
+
     assign PCP4_in = PC_reg_out;
     // assign PC_mux_in_2 = PCP4_out;
     assign PC_mux_in_0 = RESET_PC;
@@ -171,8 +171,6 @@ module cpu #(
     assign PC_reg_in = PC_mux_out;
     assign PC_mux_in_4 = PC_reg_out;
 
-    assign bios_addra = PC_mux_out[15:2];
-    assign imem_addrb = PC_mux_out[15:2];
 
     always @(*) begin
         if (PC_mux_out[31:28] == 4) bios_ena = 1;
@@ -183,6 +181,40 @@ module cpu #(
 
     /*********************** D STAGE ****************************/
 	
+
+    // BR Taken MUX
+    wire br_taken_mux_sel;
+  	wire [31:0] br_taken_mux_in0, br_taken_mux_in1;
+	wire [31:0] br_taken_mux_out;
+	MUX2 br_taken_mux (
+		.sel(br_taken_mux_sel),
+		.in0(br_taken_mux_in0),
+		.in1(br_taken_mux_in1),
+		.out(br_taken_mux_out)
+	);
+
+    // BP Enable MUX
+    wire bp_enable_mux_sel;
+  	wire [31:0] bp_enable_mux_in0, bp_enable_mux_in1;
+	wire [31:0] bp_enable_mux_out;
+	MUX2 bp_enable_mux (
+		.sel(bp_enable_mux_sel),
+		.in0(bp_enable_mux_in0),
+		.in1(bp_enable_mux_in1),
+		.out(bp_enable_mux_out)
+	);
+
+    // Branch Prediction Taken/Not Taken MUX
+    wire bp_pred_taken_mux_sel;
+  	wire [31:0] bp_pred_taken_mux_in0, bp_pred_taken_mux_in1;
+	wire [31:0] bp_pred_taken_mux_out;
+	MUX2 bp_pred_taken_mux (
+		.sel(bp_pred_taken_mux_sel),
+		.in0(bp_pred_taken_mux_in0),
+		.in1(bp_pred_taken_mux_in1),
+		.out(bp_pred_taken_mux_out)
+	);
+
 
 	// RS1 MUX
     wire RS1_mux_select;
@@ -220,60 +252,6 @@ module cpu #(
         .br_pred_taken(br_pred_taken)
     );
 
-    // BR Taken MUX
-    wire br_taken_mux_sel;
-  	wire [31:0] br_taken_mux_in0, br_taken_mux_in1;
-	wire [31:0] br_taken_mux_out;
-	MUX2 br_taken_mux (
-		.sel(br_taken_mux_sel),
-		.in0(br_taken_mux_in0),
-		.in1(br_taken_mux_in1),
-		.out(br_taken_mux_out)
-	);
-
-    // BP Enable MUX
-    wire bp_enable_mux_sel;
-  	wire [31:0] bp_enable_mux_in0, bp_enable_mux_in1;
-	wire [31:0] bp_enable_mux_out;
-	MUX2 bp_enable_mux (
-		.sel(bp_enable_mux_sel),
-		.in0(bp_enable_mux_in0),
-		.in1(bp_enable_mux_in1),
-		.out(bp_enable_mux_out)
-	);
-
-    // Branch Prediction Taken/Not Taken MUX
-    wire bp_pred_taken_mux_sel;
-  	wire [31:0] bp_pred_taken_mux_in0, bp_pred_taken_mux_in1;
-	wire [31:0] bp_pred_taken_mux_out;
-	MUX2 bp_pred_taken_mux (
-		.sel(bp_pred_taken_mux_sel),
-		.in0(bp_pred_taken_mux_in0),
-		.in1(bp_pred_taken_mux_in1),
-		.out(bp_pred_taken_mux_out)
-	);
-
-     // PC D REG
-    wire [31:0] PC_D_reg_in;
-    reg [31:0] PC_D_reg_out;
-    always @(posedge clk) begin
-        PC_D_reg_out <= PC_D_reg_in;
-    end
-
-    // INST D REG
-    wire [31:0] INST_D_reg_in;
-    reg [31:0] INST_D_reg_out;
-    always @(posedge clk) begin
-        INST_D_reg_out <= INST_D_reg_in;
-    end
-
-    // BP REG
-    wire [31:0] BR_pred_taken_reg_in;
-    reg [31:0] BR_pred_taken_reg_out;
-    always @(posedge clk) begin
-        BR_pred_taken_reg_out <= BR_pred_taken_reg_in;
-    end
-
     // RS1 REG
     wire [31:0] RS1_reg_in;
     reg [31:0] RS1_reg_out;
@@ -288,23 +266,44 @@ module cpu #(
         RS2_reg_out <= RS2_reg_in;
     end
 
+    // INST D REG
+    wire [31:0] INST_D_reg_in;
+    reg [31:0] INST_D_reg_out;
+    always @(posedge clk) begin
+        INST_D_reg_out <= INST_D_reg_in;
+    end
+
+     // PC D REG
+    wire [31:0] PC_D_reg_in;
+    reg [31:0] PC_D_reg_out;
+    always @(posedge clk) begin
+        PC_D_reg_out <= PC_D_reg_in;
+    end
+
+
+    // BP REG
+    wire [31:0] BR_pred_taken_reg_in;
+    reg [31:0] BR_pred_taken_reg_out;
+    always @(posedge clk) begin
+        BR_pred_taken_reg_out <= BR_pred_taken_reg_in;
+    end
+
+
 	// JAL ADD
     wire [31:0] JAL_add_in_0, JAL_add_in_1;
     wire [31:0] JAL_add_out;
-    ADDER jal_add (
-        .in0(JAL_add_in_0),
-        .in1(JAL_add_in_1),
-        .out(JAL_add_out)
-    );
+    assign JAL_add_out = JAL_add_in_0 + JAL_add_in_1;
 	
 	// Wiring for D stage
+
+    assign PC_D_reg_in = PC_reg_out; // for pc pipeline register in decode stage
+	assign INST_D_reg_in = NOP_mux_out; // for instruction pipeline register in decode stage
+
 	assign PC30_mux_in_0 = imem_doutb;
 	assign PC30_mux_in_1 = bios_douta;
 	
 	assign NOP_mux_in = PC30_mux_out;
 
-    assign PC_D_reg_in = PC_reg_out; // for pc pipeline register in decode stage
-	assign INST_D_reg_in = NOP_mux_out; // for instruction pipeline register in decode stage
 
     // wiring to regfile
     assign ra1 = NOP_mux_out[19:15];
@@ -313,36 +312,37 @@ module cpu #(
 	assign JAL_add_in_0 = PC_reg_out;
 	assign JAL_add_in_1 = {{20{NOP_mux_out[31]}}, NOP_mux_out[19:12], NOP_mux_out[20], NOP_mux_out[30:21], 1'b0};
 
+    assign RS1_reg_in = RS1_mux_out;
+	assign RS2_reg_in = RS2_mux_out;
+
 	assign PC_mux_in_1 = JAL_add_out;
 
 	assign RS1_mux_in_0 = rd1;
 	assign RS2_mux_in_0 = rd2;
 
-	assign RS1_reg_in = RS1_mux_out;
-	assign RS2_reg_in = RS2_mux_out;
 
     // Wiring for Branch Predictor
     assign pc_guess = PC_reg_out;
     assign is_br_guess = NOP_mux_out[6:2] == `OPC_BRANCH_5;
-
-    // BR Taken MUX Wiring
-    assign br_taken_mux_sel = (br_pred_taken) && (NOP_mux_out[6:2] == `OPC_BRANCH_5);
-    assign br_taken_mux_in0 = PCP4_out;
-    assign br_taken_mux_in1 = PC_reg_out + {{20{NOP_mux_out[31]}}, NOP_mux_out[7], NOP_mux_out[30:25], NOP_mux_out[11:8], 1'b0};
 
     // BP Enable MUX Wiring
     assign bp_enable_mux_sel = bp_enable;
     assign bp_enable_mux_in0 = PCP4_out;
     assign bp_enable_mux_in1 = br_taken_mux_out;
 
-    // PC Sel Input 2
-    assign PC_mux_in_2 = bp_enable_mux_out;
+    // BR Taken MUX Wiring
+    assign br_taken_mux_sel = (br_pred_taken) && (NOP_mux_out[6:2] == `OPC_BRANCH_5);
+    assign br_taken_mux_in0 = PCP4_out;
+    assign br_taken_mux_in1 = PC_reg_out + {{20{NOP_mux_out[31]}}, NOP_mux_out[7], NOP_mux_out[30:25], NOP_mux_out[11:8], 1'b0};
 
     // BR Pred Taken/Not Taken and BR Pred Taken Register
     assign bp_pred_taken_mux_sel = bp_enable;
     assign bp_pred_taken_mux_in0 = 0; // For no Branch prediction (always guess not taken)
     assign bp_pred_taken_mux_in1 = br_pred_taken; // Branch prediction output
     assign BR_pred_taken_reg_in = bp_pred_taken_mux_out;
+
+    // PC Sel Input 2
+    assign PC_mux_in_2 = bp_enable_mux_out;
 
 
     /*********************** EX STAGE ****************************/
@@ -362,22 +362,7 @@ module cpu #(
         PC_X_reg_out <= PC_X_reg_in;
     end
 
-     // ALU REG
-    wire [31:0] ALU_reg_in;
-    reg [31:0] ALU_reg_out;
-    always @(posedge clk) begin
-        ALU_reg_out <= ALU_reg_in;
-    end
-
-    // IMM GEN
-    wire [31:0] IMMGEN_in;
-    wire [31:0] IMMGEN_out;
-    IMM_GEN imm_gen (
-        .inst(IMMGEN_in), 
-        .imm(IMMGEN_out)
-    );
-
-     // RS1 MUX2
+    // RS1 MUX2
     wire [1:0] RS1_mux2_select;
     wire [31:0] RS1_mux2_in_0, RS1_mux2_in_1, RS1_mux2_in_2;
     wire [31:0] RS1_mux2_out;
@@ -403,6 +388,23 @@ module cpu #(
         .out(RS2_mux2_out)
     );
 
+     // ALU REG
+    wire [31:0] ALU_reg_in;
+    reg [31:0] ALU_reg_out;
+    always @(posedge clk) begin
+        ALU_reg_out <= ALU_reg_in;
+    end
+
+    // IMM GEN
+    wire [31:0] IMMGEN_in;
+    wire [31:0] IMMGEN_out;
+    IMM_GEN imm_gen (
+        .inst(IMMGEN_in), 
+        .imm(IMMGEN_out)
+    );
+
+
+
     // BRANCH COMP
     wire [31:0] RS1_br;
     wire [31:0] RS2_br;
@@ -415,6 +417,17 @@ module cpu #(
         .bmux_output(RS2_br),
         .Equality(br_eq),
         .LessThan(br_lt)
+    );
+
+    // ALU
+    wire [3:0] ALU_select;
+    wire [31:0] ALU_RS1, ALU_RS2;
+    wire [31:0] ALU_out;
+    ALU alu (
+        .alu_select(ALU_select), 
+        .amux_output(ALU_RS1), 
+        .bmux_output(ALU_RS2), 
+        .result(ALU_out)
     );
 
     // A MUX
@@ -439,17 +452,6 @@ module cpu #(
         .in0(B_mux_in_0),
         .in1(B_mux_in_1),
         .out(B_mux_out)
-    );
-
-    // ALU
-    wire [3:0] ALU_select;
-    wire [31:0] ALU_RS1, ALU_RS2;
-    wire [31:0] ALU_out;
-    ALU alu (
-        .alu_select(ALU_select), 
-        .amux_output(ALU_RS1), 
-        .bmux_output(ALU_RS2), 
-        .result(ALU_out)
     );
 
     // CSR MUX
@@ -505,7 +507,7 @@ module cpu #(
         .out(Addr_mux_out)
     );
 
-    // For Addr_mux_select (output of memories)
+    // Addr_mux_select
     always @(*) begin
         case(ALU_reg_out[31:28])
             4'b0001: Addr_mux_select = 2'b01;
@@ -518,6 +520,8 @@ module cpu #(
         endcase
     end
 
+
+    // MEM_MASK for LOAD/STORE
     wire [31:0] mem_mask_in;
     wire [2:0] mem_mask_select;
     wire [31:0] mem_mask_out;
@@ -531,11 +535,8 @@ module cpu #(
 
     wire [31:0] PCP4_2_in;
     wire [31:0] PCP4_2_out;
-	ADDER pc_plus_four2 (
-		.in0(PCP4_2_in),
-		.in1(4),
-		.out(PCP4_2_out)
-	);
+    assign PCP4_2_out = PCP4_2_in + 4;
+
 
     wire [1:0] WB_mux_select;
   	wire [31:0] WB_mux_in_0, WB_mux_in_1, WB_mux_in_2, WB_mux_in_3;
@@ -559,19 +560,6 @@ module cpu #(
     // input to ALU REG
     assign ALU_reg_in = ALU_out;
 
-    // inputs to RS1 MUX2
-	assign RS1_mux2_in_0 = RS1_reg_out;
-	assign RS1_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
-	assign RS1_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
-
-	assign RS2_mux2_in_0 = RS2_reg_out;
-	assign RS2_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
-	assign RS2_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
-
-    // inputs to BRANCH COMP
-    assign RS1_br = RS1_mux2_out;
-    assign RS2_br = RS2_mux2_out;
-
     // inputs to A MUX
     assign A_mux_in_0 = RS1_mux2_out;
     assign A_mux_in_1 = PC_D_reg_out;
@@ -584,6 +572,19 @@ module cpu #(
     // inputs to ALU
     assign ALU_RS1 = A_mux_out;
     assign ALU_RS2 = B_mux_out;
+
+    // inputs to RS1 MUX2
+	assign RS1_mux2_in_0 = RS1_reg_out;
+	assign RS1_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
+	assign RS1_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
+
+	assign RS2_mux2_in_0 = RS2_reg_out;
+	assign RS2_mux2_in_1 = ALU_reg_out; // ALU->ALU forwarding
+	assign RS2_mux2_in_2 = mem_mask_out; // MEM->ALU forwarding
+
+    // inputs to BRANCH COMP
+    assign RS1_br = RS1_mux2_out;
+    assign RS2_br = RS2_mux2_out;
 
     // inputs to CSR_MUX
     assign CSR_mux_in_0 = csr_in;
@@ -598,10 +599,7 @@ module cpu #(
     assign RS2_mux3_in_1 = ALU_reg_out; 
     assign RS2_mux3_in_2 = mem_mask_out; 
 
-    // send ALU result back to PC_SEL MUX
-    // assign PC_mux_in_3 = ALU_out;
-
-	// input to mem_mask for lw, lh and lb
+	// input to mem_mask for load
 	assign mem_mask_alu_out = ALU_reg_out;
 
 
@@ -613,13 +611,13 @@ module cpu #(
     assign pc_check = PC_D_reg_out;
     assign is_br_check = INST_D_reg_out[6:2] == `OPC_BRANCH_5;
 
-    // BR Result Mux (output to PC_SEL = 3)
+    // BR Result Mux
     assign br_result_mux_in0 = ALU_out;
     assign br_result_mux_in1 = PC_D_reg_out + 4;
     assign PC_mux_in_3 = br_result_mux_out;
 
 
-    /*********************** MEMORY ASSIGN ****************************/
+    /*********************** MEMORY ****************************/
 
 
     // input to DMEM
@@ -646,7 +644,6 @@ module cpu #(
         endcase
     end
 
-    // output of dmem = dmem_dout
 
     // input to BIOS
     assign bios_addrb = ALU_out[13:2];
@@ -695,13 +692,15 @@ module cpu #(
     assign WB_mux_in_1 = ALU_reg_out;
     assign WB_mux_in_2 = PCP4_2_out;
 
-    // writeback to regfile
+    // wb to regfile
     assign wa = INST_X_reg_out[11:7];
     assign wd = WB_mux_out;
     
 
 
     /*********************** IF CONTROL LOGIC ****************************/
+
+    
     wire [31:0] INST_IF;
     wire [31:0] INST_IF_X;
     wire rf_we;
@@ -736,6 +735,8 @@ module cpu #(
 
 
     /*********************** D CONTROL LOGIC ****************************/
+
+
     wire [31:0] INST_D;
     wire [31:0] PC_D;
     wire [31:0] INST_IF_W;
@@ -769,6 +770,8 @@ module cpu #(
     assign INST_X_D = INST_D_reg_out;
     
     /*********************** EX CONTROL LOGIC ****************************/
+
+
     wire [31:0] INST_X, INST_X_IF;
     wire br_eq_X, br_lt_X;
     wire br_un_X, b_select_X;
